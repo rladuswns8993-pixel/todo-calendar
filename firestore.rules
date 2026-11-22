@@ -14,5 +14,15 @@ service cloud.firestore {
         && request.resource.data.done is bool
         && request.resource.data.order is number;
     }
+    // 노트: 로그인한 본인만 읽고 쓰기 (문서는 note 하나, 최대 2만 자)
+    match /users/{uid}/meta/{docId} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && docId == 'note'
+        && request.resource.data.keys().hasOnly(['text', 'updatedAt'])
+        && request.resource.data.text is string
+        && request.resource.data.text.size() <= 20000
+        && request.resource.data.updatedAt is number;
+    }
   }
 }

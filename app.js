@@ -2,6 +2,7 @@ import { firebaseConfig } from './firebase-config.js';
 
 const FB = 'https://www.gstatic.com/firebasejs/10.14.1/';
 const LOCAL_KEY = 'todo-calendar-local-v1';
+const NOTE_KEY = 'todo-calendar-note-v1';
 const DOW = ['일','월','화','수','목','금','토'];
 const MAX_TEXT = 500;
 
@@ -47,7 +48,9 @@ function localBackend(){
   try { const v = JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]'); tasks = Array.isArray(v) ? v : []; } catch (e) { tasks = []; }
   const persist = () => { try { localStorage.setItem(LOCAL_KEY, JSON.stringify(tasks)); } catch (e) {} requestRender(); };
   syncState = 'local';
+  try { applyNote(localStorage.getItem(NOTE_KEY) || ''); } catch (e) { applyNote(''); }
   return {
+    saveNote(text){ try { localStorage.setItem(NOTE_KEY, text); } catch (e) {} noteSaved(); },
     add(t){ tasks.push(t); persist(); },
     update(id, patch){ const t = find(id); if (t){ Object.assign(t, patch); persist(); } },
     remove(id){ tasks = tasks.filter(x => x.id !== id); persist(); },
@@ -66,16 +69,21 @@ async function firebaseBackend(){
   const db = F.initializeFirestore(app, {
     localCache: F.persistentLocalCache({ tabManager: F.persistentMultipleTabManager() }),
   });
-  let userId = null, unsub = null;
+  let userId = null, unsub = null, noteUnsub = null;
   const col = () => F.collection(db, 'users', userId, 'tasks');
+  const noteRef = () => F.doc(db, 'users', userId, 'meta', 'note');
   const fail = e => { console.error(e); toast('저장하지 못했어요 (' + (e.code || e.message) + ')'); };
 
   setupLogin(A, auth);
 
   A.onAuthStateChanged(auth, user => {
     if (unsub){ unsub(); unsub = null; }
-    if (!user){ userId = null; tasks = []; showLogin(true); return; }
+    if (noteUnsub){ noteUnsub(); noteUnsub = null; }
+    if (!user){ userId = null; tasks = []; applyNote('', true); showLogin(true); return; }
     userId = user.uid;
+    noteUnsub = F.onSnapshot(noteRef(), snap => {
+      applyNote(snap.exists() ? (snap.data().text || '') : '');
+    }, e => { console.error(e); setNoteStatus('노트를 불러오지 못했어요'); });
     syncState = 'connecting';
     showLogin(false);
     unsub = F.onSnapshot(col(), { includeMetadataChanges: true }, snap => {
@@ -88,6 +96,10 @@ async function firebaseBackend(){
   });
 
   return {
+    saveNote(text){
+      F.setDoc(noteRef(), { text, updatedAt: Date.now() }).catch(e => { fail(e); setNoteStatus('저장 실패'); });
+      noteSaved();
+    },
     add(t){ const { id, ...data } = t; F.setDoc(F.doc(col(), id), data).catch(fail); },
     update(id, patch){ F.updateDoc(F.doc(col(), id), patch).catch(fail); },
     remove(id){ F.deleteDoc(F.doc(col(), id)).catch(fail); },
@@ -140,7 +152,7 @@ function setupLogin(A, auth){
 function showLogin(on){
   $('login').hidden = !on;
   $('app').hidden = on;
-  if (!on) render();
+  if (!on){ render(); autoGrow(noteEl); }
 }
 
 /* ════════ 렌더 ════════ */
@@ -283,6 +295,33 @@ $('addForm').addEventListener('submit', e => {
 /* 여러 줄 입력칸: 내용에 맞춰 높이 자동 조절 */
 function autoGrow(el){ el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
 $('addInput').addEventListener('input', e => autoGrow(e.target));
+
+/* ── 노트: 날짜와 상관없이 항상 보이는 메모, 입력을 멈추면 자동 저장 ── */
+const noteEl = $('noteInput');
+let noteTimer = null;
+function setNoteStatus(s){ $('noteSt').textContent = s; }
+function noteSaved(){ setNoteStatus('저장됨'); }
+function applyNote(text, force){
+  // 내가 쓰는 중일 때는 다른 기기 내용으로 덮어쓰지 않아요
+  if (!force && (document.activeElement === noteEl || noteTimer)) return;
+  if (noteEl.value !== text){ noteEl.value = text; }
+  autoGrow(noteEl);
+}
+function flushNote(){
+  if (!noteTimer) return;
+  clearTimeout(noteTimer); noteTimer = null;
+  if (backend) backend.saveNote(noteEl.value.slice(0, 20000));
+}
+noteEl.addEventListener('input', () => {
+  autoGrow(noteEl);
+  setNoteStatus('입력 중…');
+  clearTimeout(noteTimer);
+  noteTimer = setTimeout(flushNote, 700);
+});
+noteEl.addEventListener('blur', flushNote);
+addEventListener('resize', () => autoGrow(noteEl));
+addEventListener('pagehide', flushNote);
+document.addEventListener('visibilitychange', () => { if (document.hidden) flushNote(); });
 
 /* 줄바꿈 넣기 (Alt+Enter용) */
 function insertNewline(el){
