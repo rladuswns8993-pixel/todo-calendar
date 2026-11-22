@@ -239,10 +239,8 @@ document.addEventListener('click', e => {
     else if (a === 'clear'){ if (confirm('모든 할 일을 지울까요? 되돌릴 수 없어요.')) backend.clear(); }
     return;
   }
-  if (isTouchUI()){
-    const tx = e.target.closest('.pill.lg .tx');
-    if (tx && !tx.isContentEditable){ startEdit(tx); return; }
-  }
+  const tx = e.target.closest('.side .pill.lg .tx');
+  if (tx){ if (!tx.isContentEditable) startEdit(tx); return; }
   const cell = e.target.closest('.cell[data-date]');
   if (cell) select(cell.dataset.date);
 });
@@ -255,14 +253,36 @@ $('addForm').addEventListener('submit', e => {
   const v = inp.value.trim().slice(0, MAX_TEXT);
   if (!v){ inp.focus(); return; }
   inp.value = '';
+  autoGrow(inp);
   backend.add({ id: uid(), text: v, date: sel, done: false, order: Date.now() });
   inp.focus();   // 동그라미를 눌러 추가해도 키보드가 닫히지 않게
 });
 
+/* 여러 줄 입력칸: 내용에 맞춰 높이 자동 조절 */
+function autoGrow(el){ el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
+$('addInput').addEventListener('input', e => autoGrow(e.target));
+
+/* 줄바꿈 넣기 (Alt+Enter용) */
+function insertNewline(el){
+  if (el.isContentEditable){ document.execCommand('insertText', false, '\n'); return; }
+  el.setRangeText('\n', el.selectionStart, el.selectionEnd, 'end');
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+/* Enter 처리: PC는 Enter=완료, Shift/Alt+Enter=줄바꿈 · 폰은 리턴=줄바꿈 (등록은 동그라미 버튼) */
+function enterAction(e){
+  if (e.key !== 'Enter' || e.isComposing || e.keyCode === 229) return 'none';
+  if (e.altKey){ e.preventDefault(); insertNewline(e.target); return 'none'; }
+  if (e.shiftKey || isTouchUI()) return 'none';
+  e.preventDefault();
+  return 'submit';
+}
+
 document.addEventListener('keydown', e => {
   if (!backend) return;
   if (e.target.id === 'addInput'){
-    if (e.key === 'Escape') e.target.blur();
+    if (enterAction(e) === 'submit') $('addForm').requestSubmit();
+    else if (e.key === 'Escape') e.target.blur();
     return;
   }
   if (e.target.isContentEditable || /INPUT|TEXTAREA/.test(e.target.tagName) || $('app').hidden) return;
@@ -272,27 +292,25 @@ document.addEventListener('keydown', e => {
   else if (e.key === 'n' || e.key === 'N'){ e.preventDefault(); $('addInput').focus(); }
 });
 
-/* 수정: PC는 더블클릭, 폰은 글자 탭 */
-document.addEventListener('dblclick', e => {
-  const tx = e.target.closest('.pill.lg .tx');
-  if (tx && !tx.isContentEditable) startEdit(tx);
-});
+/* 수정: 사이드바의 할 일 글자를 누르면 바로 수정 (끝내기: Enter 또는 다른 곳 클릭, 취소: Esc) */
 function startEdit(tx){
   const task = find(tx.closest('.pill').dataset.id);
   if (!task) return;
   editing = true;
-  tx.contentEditable = 'true'; tx.focus();
-  const r = document.createRange(); r.selectNodeContents(tx);
+  try { tx.contentEditable = 'plaintext-only'; } catch (err) { tx.contentEditable = 'true'; }
+  if (!tx.isContentEditable) tx.contentEditable = 'true';
+  tx.focus();
+  const r = document.createRange(); r.selectNodeContents(tx); r.collapse(false);   // 커서를 글 끝에
   const s = getSelection(); s.removeAllRanges(); s.addRange(r);
   let cancelled = false, finished = false;
   tx.onkeydown = ev => {
-    if (ev.key === 'Enter' && !ev.isComposing){ ev.preventDefault(); tx.blur(); }
+    if (enterAction(ev) === 'submit') tx.blur();
     else if (ev.key === 'Escape'){ cancelled = true; tx.blur(); }
   };
   tx.onblur = () => {
     if (finished) return; finished = true;
     editing = false;
-    const v = tx.textContent.trim().slice(0, MAX_TEXT);
+    const v = tx.innerText.replace(/ /g, ' ').trim().slice(0, MAX_TEXT);
     if (!cancelled && v && v !== task.text) backend.update(task.id, { text: v });
     render();
   };

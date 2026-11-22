@@ -106,9 +106,9 @@ main{display:flex;flex-direction:column;min-width:0;overflow:auto}
 .pill.floating{position:fixed;z-index:1000;pointer-events:none;margin:0}
 body.dragging,body.dragging *{cursor:grabbing!important}
 
-.pill.lg{width:auto;font-size:13.5px;padding:9px 12px 9px 10px;gap:10px}
-.pill.lg .tx{flex:1;white-space:normal;overflow-wrap:anywhere}
-.pill.lg .cb{width:17px;height:17px}
+.pill.lg{width:auto;font-size:13.5px;padding:9px 12px 9px 10px;gap:10px;align-items:flex-start;border-radius:20px}
+.pill.lg .tx{flex:1;white-space:pre-wrap;overflow-wrap:anywhere;cursor:text}
+.pill.lg .cb{width:17px;height:17px;margin-top:1px}
 .pill.lg.done .cb::after{width:4px;height:8px}
 .pill .tag{flex:none;font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
 .pill .act{flex:none;display:none;font-size:11px;color:var(--muted);border-radius:6px;padding:2px 7px;margin:-2px -4px -2px 0}
@@ -116,17 +116,18 @@ body.dragging,body.dragging *{cursor:grabbing!important}
 .pill .act.x{font-size:15px;line-height:1;padding:1px 6px}
 .pill:hover .act{display:inline-block}
 .pill:hover .tag{display:none}
-.pill .tx[contenteditable="true"]{outline:none;cursor:text;user-select:text;-webkit-user-select:text;text-decoration:none;color:var(--text)}
+.pill .tx[contenteditable]:not([contenteditable="false"]){outline:none;cursor:text;user-select:text;-webkit-user-select:text;text-decoration:none;color:var(--text);box-shadow:0 1px 0 var(--accent-soft)}
 
 .pill.input{cursor:text;background:transparent;border:1px dashed var(--line2)}
 .pill.input:focus-within{border:1px solid var(--accent-soft)}
 .pill.input .addbtn{border-style:dashed;padding:0;background:none;color:var(--bg)}
 .pill.input:has(input:not(:placeholder-shown)) .addbtn{border-style:solid;border-color:var(--accent);background:var(--accent)}
 .pill.input:has(input:not(:placeholder-shown)) .addbtn::before{content:"+";font-size:15px;font-weight:700;line-height:1;transform:translateY(-1px)}
-.pill.input input{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--text);font:inherit}
-.pill.input input::placeholder{color:var(--faint)}
-.pill .kbd{flex:none;font-size:10px;color:var(--faint);border:1px solid var(--line2);border-radius:4px;padding:0 4px;line-height:15px;opacity:0}
-.pill.input:focus-within .kbd{opacity:1}
+.pill.input textarea{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--text);font:inherit;line-height:1.35;resize:none;overflow-y:auto;max-height:180px;padding:0;display:block}
+.pill.input textarea::placeholder{color:var(--faint)}
+.addhint{font-size:11px;color:var(--faint);margin:7px 0 0 4px;opacity:0;transition:opacity .15s}
+#addForm:focus-within + .addhint{opacity:1}
+@media (hover:none){ .addhint{display:none} }
 
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translate(-50%,16px);background:#2a2a2f;border:1px solid var(--line2);color:var(--text);padding:10px 16px;border-radius:999px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:2000;max-width:90vw;text-align:center}
 .toast.show{opacity:1;transform:translate(-50%,0)}
@@ -160,6 +161,6 @@ body.dragging,body.dragging *{cursor:grabbing!important}
   .dots{display:flex}
   .pill.lg{font-size:15px;padding:11px 12px 11px 11px}
   .pill.lg .cb{width:19px;height:19px}
-  .pill.input input{font-size:16px}
+  .pill.input textarea{font-size:16px}
   .mhint{display:block}
 }
