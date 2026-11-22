@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src https://cdn.jsdelivr.net; connect-src 'self' https://*.googleapis.com https://www.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data:; frame-src https://*.firebaseapp.com; manifest-src 'self'; worker-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'">
+<title>투두 캘린더</title>
+<meta name="theme-color" content="#161618">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="투두">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link rel="stylesheet" href="style.css">
+<script type="module" src="app.js"></script>
+</head>
+<body>
+
+<div class="login" id="login" hidden>
+  <form class="login-box" id="loginForm">
+    <div class="logo"></div>
+    <h1>투두 캘린더</h1>
+    <p class="login-sub">로그인하면 PC와 폰이 자동으로 연동돼요</p>
+    <input type="email" id="email" placeholder="이메일" autocomplete="username" required>
+    <input type="password" id="pw" placeholder="비밀번호 (6자 이상)" autocomplete="current-password" minlength="6" required>
+    <button type="submit" class="primary" id="loginBtn">로그인</button>
+    <button type="button" class="link" id="modeBtn">처음이에요 · 계정 만들기</button>
+    <p class="login-err" id="loginErr"></p>
+  </form>
+</div>
+
+<div class="app" id="app" hidden>
+  <aside class="side" id="side"></aside>
+  <main>
+    <div class="bar">
+      <h1 id="title"></h1>
+      <div class="nav">
+        <button data-act="prev" title="이전 달 (←)">‹</button>
+        <button class="t" data-act="goto-today" title="오늘 (T)">오늘</button>
+        <button data-act="next" title="다음 달 (→)">›</button>
+      </div>
+      <div class="hint">날짜 클릭 → 할 일 보기 · <kbd>N</kbd> 새 할 일 · <kbd>←</kbd><kbd>→</kbd> 달 이동</div>
+    </div>
+    <div class="dow"><div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div></div>
+    <div class="grid" id="grid"></div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+</body>
+</html>
