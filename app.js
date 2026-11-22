@@ -3,7 +3,6 @@ import { firebaseConfig } from './firebase-config.js';
 const FB = 'https://www.gstatic.com/firebasejs/10.14.1/';
 const LOCAL_KEY = 'todo-calendar-local-v1';
 const DOW = ['일','월','화','수','목','금','토'];
-const MAX_IN_CELL = 3;
 const MAX_TEXT = 500;
 
 /* ── 날짜·문자 유틸 ── */
@@ -173,8 +172,8 @@ function renderGrid(){
     if (d.getMonth() !== m) cls.push('out');
     if (k === t) cls.push('today');
     if (k === sel) cls.push('sel');
-    let items = list.slice(0, MAX_IN_CELL).map(x => pillHTML(x)).join('');
-    if (list.length > MAX_IN_CELL) items += `<div class="more">외 ${list.length - MAX_IN_CELL}개</div>`;
+    let items = list.map(x => pillHTML(x)).join('');
+    if (list.length) items += `<div class="more" hidden></div>`;
     const dots = list.slice(0, 4).map(x => `<i class="${x.done ? 'd' : ''}"></i>`).join('');
     h += `<div class="${cls.join(' ')}" data-date="${k}"><div class="dn"><b>${d.getDate()}</b>`
       + `<button class="add" data-act="add" title="할 일 추가">+</button></div>`
@@ -183,7 +182,30 @@ function renderGrid(){
   const g = $('grid');
   g.style.gridTemplateRows = `repeat(${rows}, minmax(var(--rowh), 1fr))`;
   g.innerHTML = h;
+  fitCells();
 }
+
+/* 칸 높이에 들어가는 만큼만 보여주고 나머지는 "외 N개" */
+function fitCells(){
+  for (const cell of $('grid').children){
+    const items = cell.querySelector('.items');
+    if (!items || !items.firstChild) continue;
+    if (!items.offsetParent) return;                 // 폰 화면(점 표시)에서는 생략
+    const pills = [...items.querySelectorAll('.pill')];
+    const more = items.querySelector('.more');
+    pills.forEach(p => { p.hidden = false; });
+    more.hidden = true;
+    const limit = cell.getBoundingClientRect().bottom - 8;
+    if (pills[pills.length - 1].getBoundingClientRect().bottom <= limit) continue;
+    more.hidden = false; more.textContent = '외 00개';
+    const need = more.getBoundingClientRect().height + 4;
+    let n = 0;
+    while (n < pills.length && pills[n].getBoundingClientRect().bottom + need <= limit) n++;
+    pills.forEach((p, i) => { p.hidden = i >= n; });
+    more.textContent = `외 ${pills.length - n}개`;
+  }
+}
+new ResizeObserver(() => { if (!(drag && drag.on)) fitCells(); }).observe($('grid'));
 
 function renderSide(){
   const t = todayKey(), d = parse(sel);
