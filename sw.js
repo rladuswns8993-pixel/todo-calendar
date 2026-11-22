@@ -1,6 +1,6 @@
 // 오프라인에서도 앱이 열리도록 화면 파일을 저장해 두는 서비스 워커.
 // 할 일 데이터 동기화는 Firebase가 따로 처리해요 (여기서는 건드리지 않음).
-const CACHE = 'todo-cal-v1';
+const CACHE = 'todo-cal-v2';
 const SHELL = [
   './', './index.html', './style.css', './app.js', './firebase-config.js', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png',
@@ -26,7 +26,7 @@ self.addEventListener('fetch', e => {
   // 앱 파일: 인터넷이 되면 최신 버전, 안 되면 저장본
   if (url.origin === self.location.origin){
     e.respondWith(
-      fetch(req).then(res => {
+      fetch(new Request(req.url, { cache: 'no-cache', credentials: 'same-origin' })).then(res => {
         if (res.ok){ const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
         return res;
       }).catch(() => caches.match(req, { ignoreSearch: true }).then(r => r || caches.match('./index.html')))

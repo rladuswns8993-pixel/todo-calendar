@@ -44,7 +44,8 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .sec-h em{font-style:normal;font-size:11px;font-weight:500;color:var(--muted);background:var(--pill);border-radius:999px;padding:1px 8px;font-variant-numeric:tabular-nums}
 .sec.late{padding-top:22px;border-top:1px solid var(--line)}
 .list{display:flex;flex-direction:column;gap:6px;border-radius:14px}
-.list.drop{outline:1px dashed var(--accent-soft);outline-offset:5px}
+.sec.drop{outline:1px dashed var(--accent-soft);outline-offset:6px;border-radius:14px}
+#dayList:not(:empty){margin-bottom:6px}
 .empty{font-size:12.5px;color:var(--faint);padding:6px 2px}
 .mhint{display:none;font-size:11.5px;color:var(--faint);margin-top:10px}
 .side-foot{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:11px;color:var(--faint);padding-top:8px}
@@ -119,7 +120,9 @@ body.dragging,body.dragging *{cursor:grabbing!important}
 
 .pill.input{cursor:text;background:transparent;border:1px dashed var(--line2)}
 .pill.input:focus-within{border:1px solid var(--accent-soft)}
-.pill.input .cb{border-style:dashed}
+.pill.input .addbtn{border-style:dashed;padding:0;background:none;color:var(--bg)}
+.pill.input:has(input:not(:placeholder-shown)) .addbtn{border-style:solid;border-color:var(--accent);background:var(--accent)}
+.pill.input:has(input:not(:placeholder-shown)) .addbtn::before{content:"+";font-size:15px;font-weight:700;line-height:1;transform:translateY(-1px)}
 .pill.input input{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--text);font:inherit}
 .pill.input input::placeholder{color:var(--faint)}
 .pill .kbd{flex:none;font-size:10px;color:var(--faint);border:1px solid var(--line2);border-radius:4px;padding:0 4px;line-height:15px;opacity:0}

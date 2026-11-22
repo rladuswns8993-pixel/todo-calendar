@@ -193,43 +193,25 @@ function renderSide(){
   const list = byDate(sel), done = list.filter(x => x.done).length;
   const late = tasks.filter(x => !x.done && x.date < t).sort((a, b) => a.date.localeCompare(b.date) || a.order - b.order);
   const del = `<button class="act x" data-act="del" title="삭제">×</button>`;
-  const focused = document.activeElement && document.activeElement.id === 'addInput';
-  const draft = $('addInput') ? $('addInput').value : '';
 
-  $('side').innerHTML = `
-    <div>
-      <h2>${title}</h2><div class="sub">${sub}</div>
-      ${list.length ? `<div class="prog"><span><i style="width:${Math.round(done / list.length * 100)}%"></i></span>${done} / ${list.length}</div>` : ''}
-    </div>
-    <section class="sec">
-      <div class="sec-h">할 일 <em>${list.length}</em></div>
-      <div class="list" data-date="${sel}">
-        ${list.map(x => pillHTML(x, { lg: 1, actions: del })).join('')}
-        <label class="pill lg input"><span class="cb"></span><input id="addInput" placeholder="할 일 추가" autocomplete="off" maxlength="${MAX_TEXT}" enterkeyhint="done"><span class="kbd">↵</span></label>
-      </div>
-      <div class="mhint">길게 눌러서 달력 날짜로 끌면 이동 · 글자를 누르면 수정</div>
-    </section>
-    <section class="sec late">
-      <div class="sec-h">밀린 일 <em>${late.length}</em></div>
-      <div class="list">
-        ${late.length ? late.map(x => pillHTML(x, { lg: 1, tag: md(x.date), actions: `<button class="act" data-act="to-today" title="오늘로 옮기기">오늘로</button>` })).join('')
-                      : `<div class="empty">밀린 일이 없어요</div>`}
-      </div>
-    </section>
-    <div class="side-foot">
-      <span class="sync s-${syncState}">${SYNC_LABEL[syncState]}</span>
-      <span>${backend && backend.signOut ? `<button data-act="logout">로그아웃</button>` : ''}<button data-act="clear">모두 지우기</button></span>
-    </div>`;
-  const inp = $('addInput');
-  inp.value = draft;
-  if (focused) inp.focus();
+  // 입력칸(addForm)은 index.html에 고정돼 있고 다시 그리지 않아요 → 동기화 중에도 키보드·입력 내용 유지
+  $('sideHead').innerHTML = `<h2>${title}</h2><div class="sub">${sub}</div>`
+    + (list.length ? `<div class="prog"><span><i style="width:${Math.round(done / list.length * 100)}%"></i></span>${done} / ${list.length}</div>` : '');
+  $('daySec').dataset.date = sel;
+  $('dayCnt').textContent = list.length;
+  $('dayList').innerHTML = list.map(x => pillHTML(x, { lg: 1, actions: del })).join('');
+  $('lateCnt').textContent = late.length;
+  $('lateList').innerHTML = late.length
+    ? late.map(x => pillHTML(x, { lg: 1, tag: md(x.date), actions: `<button class="act" data-act="to-today" title="오늘로 옮기기">오늘로</button>` })).join('')
+    : `<div class="empty">밀린 일이 없어요</div>`;
+  $('sideFoot').innerHTML = `<span class="sync s-${syncState}">${SYNC_LABEL[syncState]}</span>`
+    + `<span>${backend && backend.signOut ? `<button data-act="logout">로그아웃</button>` : ''}<button data-act="clear">모두 지우기</button></span>`;
 }
 
 function select(date, focusInput){
   sel = date;
   const d = parse(date);
   if (d.getFullYear() !== view.y || d.getMonth() !== view.m) view = { y: d.getFullYear(), m: d.getMonth() };
-  const keep = $('addInput'); if (keep) keep.value = '';
   render();
   if (focusInput) $('addInput').focus();
 }
@@ -265,13 +247,22 @@ document.addEventListener('click', e => {
   if (cell) select(cell.dataset.date);
 });
 
+/* 추가: 폼 제출 방식 → PC Enter, 아이폰·안드로이드 키보드의 완료/리턴, 동그라미 버튼 모두 동작 */
+$('addForm').addEventListener('submit', e => {
+  e.preventDefault();
+  if (!backend) return;
+  const inp = $('addInput');
+  const v = inp.value.trim().slice(0, MAX_TEXT);
+  if (!v){ inp.focus(); return; }
+  inp.value = '';
+  backend.add({ id: uid(), text: v, date: sel, done: false, order: Date.now() });
+  inp.focus();   // 동그라미를 눌러 추가해도 키보드가 닫히지 않게
+});
+
 document.addEventListener('keydown', e => {
   if (!backend) return;
   if (e.target.id === 'addInput'){
-    if (e.key === 'Enter' && !e.isComposing){
-      const v = e.target.value.trim().slice(0, MAX_TEXT);
-      if (v){ e.target.value = ''; backend.add({ id: uid(), text: v, date: sel, done: false, order: Date.now() }); }
-    } else if (e.key === 'Escape') e.target.blur();
+    if (e.key === 'Escape') e.target.blur();
     return;
   }
   if (e.target.isContentEditable || /INPUT|TEXTAREA/.test(e.target.tagName) || $('app').hidden) return;
@@ -357,7 +348,7 @@ function moveDrag(){
   drag.clone.style.left = (drag.x - drag.ox) + 'px';
   drag.clone.style.top = (drag.y - drag.oy) + 'px';
   const under = document.elementFromPoint(drag.x, drag.y);
-  const t = under && under.closest('.cell[data-date], .list[data-date]');
+  const t = under && under.closest('.cell[data-date], [data-drop][data-date]');
   if (t !== drag.target){
     if (drag.target) drag.target.classList.remove('drop');
     if (t) t.classList.add('drop');
@@ -399,7 +390,9 @@ addEventListener('offline', () => { if (syncState !== 'local') syncState = 'offl
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')){
   navigator.serviceWorker.register('./sw.js').catch(() => {});
 }
-const configured = firebaseConfig && firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith('YOUR');
+// 개발용: 내 PC(localhost)에서 ?local 을 붙이면 Firebase 없이 화면만 테스트
+const devLocal = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && new URLSearchParams(location.search).has('local');
+const configured = !devLocal && firebaseConfig && firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith('YOUR');
 (async () => {
   if (!configured){ backend = localBackend(); showLogin(false); return; }
   try { backend = await firebaseBackend(); }

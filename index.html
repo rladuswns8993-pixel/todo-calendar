@@ -14,8 +14,8 @@
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="style.css">
-<script type="module" src="app.js"></script>
+<link rel="stylesheet" href="style.css?v=2">
+<script type="module" src="app.js?v=2"></script>
 </head>
 <body>
 
@@ -33,7 +33,24 @@
 </div>
 
 <div class="app" id="app" hidden>
-  <aside class="side" id="side"></aside>
+  <aside class="side" id="side">
+    <div id="sideHead"></div>
+    <section class="sec" id="daySec" data-drop>
+      <div class="sec-h">할 일 <em id="dayCnt">0</em></div>
+      <div class="list" id="dayList"></div>
+      <form class="pill lg input" id="addForm" autocomplete="off">
+        <button type="submit" class="cb addbtn" aria-label="할 일 추가" title="추가"></button>
+        <input id="addInput" placeholder="할 일 추가" maxlength="500" enterkeyhint="done" autocomplete="off">
+        <span class="kbd">↵</span>
+      </form>
+      <div class="mhint">길게 눌러서 달력 날짜로 끌면 이동 · 글자를 누르면 수정</div>
+    </section>
+    <section class="sec late">
+      <div class="sec-h">밀린 일 <em id="lateCnt">0</em></div>
+      <div class="list" id="lateList"></div>
+    </section>
+    <div class="side-foot" id="sideFoot"></div>
+  </aside>
   <main>
     <div class="bar">
       <h1 id="title"></h1>
