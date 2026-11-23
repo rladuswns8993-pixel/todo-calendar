@@ -3,6 +3,8 @@ import { firebaseConfig } from './firebase-config.js';
 const FB = 'https://www.gstatic.com/firebasejs/10.14.1/';
 const LOCAL_KEY = 'todo-calendar-local-v1';
 const NOTE_KEY = 'todo-calendar-note-v1';
+const NOTE_BACKUP = 'todo-calendar-note-backup-';   // + 사용자 id: 로그인 모드에서도 이 기기에 노트 사본을 보관
+let noteBackupKey = NOTE_BACKUP + 'anon', noteSeq = 0;
 const DOW = ['일','월','화','수','목','금','토'];
 const MAX_TEXT = 500;
 
@@ -82,9 +84,24 @@ async function firebaseBackend(){
     if (noteUnsub){ noteUnsub(); noteUnsub = null; }
     if (!user){ userId = null; tasks = []; applyNote('', true); showLogin(true); return; }
     userId = user.uid;
+    const backupKey = NOTE_BACKUP + userId;
+    const backup = () => { try { return localStorage.getItem(backupKey) || ''; } catch (e) { return ''; } };
     noteUnsub = F.onSnapshot(noteRef(), snap => {
-      applyNote(snap.exists() ? (snap.data().text || '') : '');
-    }, e => { console.error(e); setNoteStatus('노트를 불러오지 못했어요'); });
+      if (snap.exists()){
+        const text = snap.data().text || '';
+        applyNote(text);
+        if (!snap.metadata.hasPendingWrites) try { localStorage.setItem(backupKey, text); } catch (e) {}
+      } else if (backup()){
+        // 서버에 노트가 없는데 이 기기에 백업이 있으면 백업을 보여주고, 서버 응답이면 올려요
+        applyNote(backup());
+        if (!snap.metadata.fromCache) F.setDoc(noteRef(), { text: backup(), updatedAt: Date.now() }).catch(() => {});
+      } else applyNote('');
+    }, e => {
+      console.error(e);
+      applyNote(backup());
+      setNoteStatus('서버 연결 안 됨 · 이 기기에만 보관 중');
+    });
+    noteBackupKey = backupKey;
     syncState = 'connecting';
     showLogin(false);
     unsub = F.onSnapshot(col(), { includeMetadataChanges: true }, snap => {
@@ -98,8 +115,17 @@ async function firebaseBackend(){
 
   return {
     saveNote(text){
-      F.setDoc(noteRef(), { text, updatedAt: Date.now() }).catch(e => { fail(e); setNoteStatus('저장 실패'); });
-      noteSaved();
+      // 먼저 이 기기에 백업 → 서버가 저장을 확인해야 "저장됨"
+      try { localStorage.setItem(noteBackupKey, text); } catch (e) {}
+      setNoteStatus('이 기기에 저장됨 · 동기화 중…');
+      const seq = ++noteSeq;
+      F.setDoc(noteRef(), { text, updatedAt: Date.now() })
+        .then(() => { if (seq === noteSeq) noteSaved(); })
+        .catch(e => {
+          console.error(e);
+          if (seq === noteSeq) setNoteStatus('동기화 실패 · 이 기기에만 보관 중');
+          toast(e.code === 'permission-denied' ? '노트 동기화가 막혀 있어요. Firebase 보안 규칙을 게시해 주세요.' : '노트를 동기화하지 못했어요 (' + (e.code || e.message) + ')');
+        });
     },
     add(t){ const { id, ...data } = t; F.setDoc(F.doc(col(), id), data).catch(fail); },
     update(id, patch){ F.updateDoc(F.doc(col(), id), patch).catch(fail); },
