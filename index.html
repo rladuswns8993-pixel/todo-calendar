@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" spellcheck="false">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -14,17 +14,17 @@
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="style.css?v=5">
-<script type="module" src="app.js?v=5"></script>
+<link rel="stylesheet" href="style.css?v=6">
+<script type="module" src="app.js?v=6"></script>
 </head>
-<body>
+<body spellcheck="false">
 
 <div class="login" id="login" hidden>
   <form class="login-box" id="loginForm">
     <div class="logo"></div>
     <h1>투두 캘린더</h1>
     <p class="login-sub">로그인하면 PC와 폰이 자동으로 연동돼요</p>
-    <input type="email" id="email" placeholder="이메일" autocomplete="username" required>
+    <input type="email" id="email" spellcheck="false" placeholder="이메일" autocomplete="username" required>
     <input type="password" id="pw" placeholder="비밀번호 (6자 이상)" autocomplete="current-password" minlength="6" required>
     <button type="submit" class="primary" id="loginBtn">로그인</button>
     <button type="button" class="link" id="modeBtn">처음이에요 · 계정 만들기</button>
@@ -40,7 +40,7 @@
       <div class="list" id="dayList"></div>
       <form class="pill lg input" id="addForm" autocomplete="off">
         <button type="submit" class="cb addbtn" aria-label="할 일 추가" title="추가"></button>
-        <textarea id="addInput" rows="1" placeholder="할 일 추가" maxlength="500" autocomplete="off"></textarea>
+        <textarea id="addInput" rows="1" placeholder="할 일 추가" maxlength="500" autocomplete="off" spellcheck="false" autocorrect="off"></textarea>
       </form>
       <div class="addhint">Enter 등록 · Shift+Enter 또는 Alt+Enter 줄바꿈</div>
       <div class="mhint">리턴은 줄바꿈, 왼쪽 동그라미를 누르면 등록 · 글자를 누르면 수정 · 길게 눌러 달력 날짜로 끌면 이동</div>
@@ -50,8 +50,9 @@
       <div class="list" id="lateList"></div>
     </section>
     <section class="sec note">
-      <div class="sec-h">노트 <span class="note-st" id="noteSt"></span></div>
-      <textarea id="noteInput" class="note-box" placeholder="날짜와 상관없이 자유롭게 메모하세요" maxlength="20000"></textarea>
+      <div class="sec-h">노트 <span class="note-st" id="noteSt"></span>
+        <button type="button" class="note-b" id="noteBold" title="굵게 (Ctrl+B)" aria-label="굵게">B</button></div>
+      <div id="noteInput" class="note-box" contenteditable="true" spellcheck="false" autocorrect="off" role="textbox" aria-multiline="true" data-placeholder="날짜와 상관없이 자유롭게 메모하세요"></div>
     </section>
     <div class="side-foot" id="sideFoot"></div>
   </aside>

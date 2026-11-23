@@ -1,6 +1,6 @@
 // 오프라인에서도 앱이 열리도록 화면 파일을 저장해 두는 서비스 워커.
 // 할 일 데이터 동기화는 Firebase가 따로 처리해요 (여기서는 건드리지 않음).
-const CACHE = 'todo-cal-v5';
+const CACHE = 'todo-cal-v6';
 const SHELL = [
   './', './index.html', './style.css', './app.js', './firebase-config.js', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png',

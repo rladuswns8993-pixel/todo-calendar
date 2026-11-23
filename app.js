@@ -152,7 +152,7 @@ function setupLogin(A, auth){
 function showLogin(on){
   $('login').hidden = !on;
   $('app').hidden = on;
-  if (!on){ render(); autoGrow(noteEl); }
+  if (!on) render();
 }
 
 /* ════════ 렌더 ════════ */
@@ -296,32 +296,109 @@ $('addForm').addEventListener('submit', e => {
 function autoGrow(el){ el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
 $('addInput').addEventListener('input', e => autoGrow(e.target));
 
-/* ── 노트: 날짜와 상관없이 항상 보이는 메모, 입력을 멈추면 자동 저장 ── */
+/* ── 노트: 날짜와 상관없이 항상 보이는 메모, 입력을 멈추면 자동 저장 · 굵게 지원 ── */
 const noteEl = $('noteInput');
-let noteTimer = null;
+const NOTE_MAX = 20000;
+let noteTimer = null, noteRange = null;
 function setNoteStatus(s){ $('noteSt').textContent = s; }
 function noteSaved(){ setNoteStatus('저장됨'); }
+
+// 저장·불러오기 때 허용하는 것: 글자, 줄바꿈, 줄(div), 굵게(b) — 그 외 태그·속성은 모두 버려요
+function cleanInto(src, dst){
+  for (const n of src.childNodes){
+    if (n.nodeType === 3){ dst.append(n.data); continue; }
+    if (n.nodeType !== 1) continue;
+    const tag = n.tagName;
+    if (/^(SCRIPT|STYLE|TEMPLATE|TITLE|HEAD)$/.test(tag)) continue;
+    if (tag === 'BR'){ dst.append(document.createElement('br')); continue; }
+    let el = null;
+    if (tag === 'B' || tag === 'STRONG' || (tag === 'SPAN' && /bold|[6-9]00/.test(n.style && n.style.fontWeight || ''))) el = document.createElement('b');
+    else if (tag === 'DIV' || tag === 'P' || tag === 'LI') el = document.createElement('div');
+    if (el){ cleanInto(n, el); dst.append(el); } else cleanInto(n, dst);
+  }
+}
+// 저장된 노트를 화면용으로 바꿀 때 브라우저 HTML 해석기를 쓰지 않고 직접 읽어요 (허용 태그 외에는 실행·로드될 틈이 없게)
+const ENT = { amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'", nbsp: ' ' };
+function parseNote(html){
+  const box = document.createElement('div');
+  const stack = [box];
+  const re = /<(\/?)([a-zA-Z]+)\b[^>]*>|[^<]+|</g;
+  let m;
+  while ((m = re.exec(html))){
+    const top = stack[stack.length - 1];
+    if (!m[2]){ top.append(m[0].replace(/&(amp|lt|gt|quot|#39|nbsp);/g, (_, k) => ENT[k])); continue; }
+    const tag = m[2].toLowerCase(), close = !!m[1];
+    const kind = tag === 'br' ? 'br' : (tag === 'b' || tag === 'strong') ? 'b' : (tag === 'div' || tag === 'p') ? 'div' : null;
+    if (!kind) continue;                                   // 그 외 태그는 버림
+    if (kind === 'br'){ if (!close) top.append(document.createElement('br')); continue; }
+    if (!close){ const el = document.createElement(kind); top.append(el); stack.push(el); continue; }
+    for (let i = stack.length - 1; i > 0; i--){            // 닫는 태그: 짝이 맞는 곳까지 닫기
+      if (stack[i].tagName.toLowerCase() === kind){ stack.length = i; break; }
+    }
+  }
+  return box;
+}
+function cleanHTML(node){ const box = document.createElement('div'); cleanInto(node, box); return box; }
+function escapeHTML(s){ return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function noteToHTML(text){
+  if (/<(b|br|div|strong)\b/i.test(text)) return text;            // 굵게 지원 이후 저장된 노트
+  return escapeHTML(text).replace(/\n/g, '<br>');                    // 예전 일반 글 노트
+}
+function serializeNote(){
+  if (!noteEl.textContent.trim()) return '';
+  return cleanHTML(noteEl).innerHTML;
+}
 function applyNote(text, force){
   // 내가 쓰는 중일 때는 다른 기기 내용으로 덮어쓰지 않아요
   if (!force && (document.activeElement === noteEl || noteTimer)) return;
-  if (noteEl.value !== text){ noteEl.value = text; }
-  autoGrow(noteEl);
+  const box = parseNote(noteToHTML(text || ''));
+  if (noteEl.innerHTML !== box.innerHTML) noteEl.replaceChildren(...box.childNodes);
 }
 function flushNote(){
   if (!noteTimer) return;
   clearTimeout(noteTimer); noteTimer = null;
-  if (backend) backend.saveNote(noteEl.value.slice(0, 20000));
+  const html = serializeNote();
+  if (html.length > NOTE_MAX){ setNoteStatus('노트가 너무 길어 저장하지 못했어요'); return; }
+  if (backend) backend.saveNote(html);
 }
 noteEl.addEventListener('input', () => {
-  autoGrow(noteEl);
+  // 다 지웠을 때 남는 빈 줄바꿈을 치워서 안내 문구가 다시 보이게
+  if (!noteEl.textContent && noteEl.querySelectorAll('br').length <= 1 && !noteEl.querySelector('div')) noteEl.replaceChildren();
   setNoteStatus('입력 중…');
   clearTimeout(noteTimer);
   noteTimer = setTimeout(flushNote, 700);
 });
+// 붙여넣기·끌어넣기는 글자만 (다른 곳의 서식·이미지는 안 들어와요)
+noteEl.addEventListener('paste', e => {
+  e.preventDefault();
+  document.execCommand('insertText', false, e.clipboardData.getData('text/plain'));
+});
+noteEl.addEventListener('drop', e => e.preventDefault());
 noteEl.addEventListener('blur', flushNote);
-addEventListener('resize', () => autoGrow(noteEl));
 addEventListener('pagehide', flushNote);
 document.addEventListener('visibilitychange', () => { if (document.hidden) flushNote(); });
+
+// 굵게 버튼 (PC는 Ctrl+B / ⌘+B 도 돼요)
+const boldBtn = $('noteBold');
+document.addEventListener('selectionchange', () => {
+  const s = getSelection();
+  const inNote = s.rangeCount && noteEl.contains(s.anchorNode);
+  if (inNote) noteRange = s.getRangeAt(0).cloneRange();
+  boldBtn.classList.toggle('on', !!inNote && document.queryCommandState('bold'));
+});
+boldBtn.addEventListener('pointerdown', e => e.preventDefault());   // 버튼을 눌러도 글 선택이 풀리지 않게
+boldBtn.addEventListener('mousedown', e => e.preventDefault());
+boldBtn.addEventListener('click', () => {
+  const s = getSelection();
+  if (!(s.rangeCount && noteEl.contains(s.anchorNode))){
+    noteEl.focus();
+    s.removeAllRanges();
+    if (noteRange && noteEl.contains(noteRange.startContainer)) s.addRange(noteRange);
+    else { const r = document.createRange(); r.selectNodeContents(noteEl); r.collapse(false); s.addRange(r); }
+  }
+  document.execCommand('bold');
+  boldBtn.classList.toggle('on', document.queryCommandState('bold'));
+});
 
 /* 줄바꿈 넣기 (Alt+Enter용) */
 function insertNewline(el){
@@ -360,6 +437,7 @@ function startEdit(tx){
   editing = true;
   try { tx.contentEditable = 'plaintext-only'; } catch (err) { tx.contentEditable = 'true'; }
   if (!tx.isContentEditable) tx.contentEditable = 'true';
+  tx.spellcheck = false;
   tx.focus();
   const r = document.createRange(); r.selectNodeContents(tx); r.collapse(false);   // 커서를 글 끝에
   const s = getSelection(); s.removeAllRanges(); s.addRange(r);
