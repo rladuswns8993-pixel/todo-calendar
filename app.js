@@ -34,7 +34,8 @@ const SYNC_LABEL = {
 };
 
 const find = id => tasks.find(t => t.id === id);
-const byDate = date => tasks.filter(t => t.date === date).sort((a, b) => a.order - b.order);
+// 미완료가 먼저, 완료는 아래로 (같은 묶음 안에서는 추가한 순서대로)
+const byDate = date => tasks.filter(t => t.date === date).sort((a, b) => (a.done - b.done) || (a.order - b.order));
 
 function toast(msg){
   const t = $('toast'); t.textContent = msg; t.classList.add('show');
@@ -187,7 +188,9 @@ function renderGrid(){
     let items = list.map(x => pillHTML(x)).join('');
     if (list.length) items += `<div class="more" hidden></div>`;
     const dots = list.slice(0, 4).map(x => `<i class="${x.done ? 'd' : ''}"></i>`).join('');
+    const left = list.filter(x => !x.done).length;
     h += `<div class="${cls.join(' ')}" data-date="${k}"><div class="dn"><b>${d.getDate()}</b>`
+      + (left ? `<span class="left" title="${left}개 남음">${left}<small>개 남음</small></span>` : '')
       + `<button class="add" data-act="add" title="할 일 추가">+</button></div>`
       + `<div class="items">${items}</div><div class="dots">${dots}</div></div>`;
   }

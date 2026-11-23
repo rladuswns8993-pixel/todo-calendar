@@ -45,7 +45,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .sec.late{padding-top:22px;border-top:1px solid var(--line)}
 .list{display:flex;flex-direction:column;gap:6px;border-radius:14px}
 .sec.drop{outline:1px dashed var(--accent-soft);outline-offset:6px;border-radius:14px}
-#dayList:not(:empty){margin-bottom:6px}
+#dayList:not(:empty){margin-top:8px}
 .empty{font-size:12.5px;color:var(--faint);padding:6px 2px}
 .sec.note{padding-top:22px;border-top:1px solid var(--line)}
 .note-st{margin-left:auto;font-size:11px;font-weight:400;color:var(--faint)}
@@ -89,9 +89,14 @@ main{display:flex;flex-direction:column;min-width:0;overflow:auto}
 .cell.sel{box-shadow:inset 0 0 0 1px var(--accent-soft)}
 .cell.drop{background:var(--drop);box-shadow:inset 0 0 0 1px var(--accent)}
 .dn{display:flex;align-items:center;justify-content:space-between;height:24px;padding:0 1px 0 2px;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
-.dn b{font-weight:500;min-width:24px;height:24px;padding:0 6px;display:inline-grid;place-items:center;border-radius:12px}
+.dn b{flex:none;font-weight:500;min-width:24px;height:24px;padding:0 6px;display:inline-grid;place-items:center;border-radius:12px}
 .cell.today .dn b{background:var(--today-bg);color:var(--today-fg);font-weight:600}
-.add{opacity:0;width:22px;height:22px;border-radius:6px;display:grid;place-items:center;color:var(--muted);font-size:15px;line-height:1}
+.left{margin:0 auto 0 6px;font-size:11px;font-weight:500;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.cell.today .left{color:var(--text);font-weight:600}
+.left small{font-size:inherit;font-weight:inherit}
+.cell{container-type:inline-size}
+@container (max-width:120px){ .left small{display:none} }
+.add{opacity:0;flex:none;width:22px;height:22px;border-radius:6px;display:grid;place-items:center;color:var(--muted);font-size:15px;line-height:1}
 .cell:hover .add{opacity:1}
 .add:hover{background:var(--pill);color:var(--text)}
 .items{display:flex;flex-direction:column;gap:4px;min-width:0}
@@ -135,7 +140,7 @@ body.dragging,body.dragging *{cursor:grabbing!important}
 .pill.input:has(textarea:not(:placeholder-shown)) .addbtn::before{content:"+";font-size:15px;font-weight:700;line-height:1;transform:translateY(-1px)}
 .pill.input textarea{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--text);font:inherit;line-height:1.35;resize:none;overflow-y:auto;max-height:180px;padding:0;display:block}
 .pill.input textarea::placeholder{color:var(--faint)}
-.addhint{font-size:11px;color:var(--faint);margin:7px 0 0 4px;opacity:0;transition:opacity .15s}
+.addhint{font-size:11px;color:var(--faint);margin:6px 0 0 4px;opacity:0;transition:opacity .15s}
 #addForm:focus-within + .addhint{opacity:1}
 @media (hover:none){ .addhint{display:none} }
 
@@ -167,7 +172,7 @@ body.dragging,body.dragging *{cursor:grabbing!important}
   .grid{gap:3px;padding:0 8px 12px;min-height:0}
   .cell{padding:4px 2px 6px;border-radius:8px;align-items:center;gap:3px}
   .dn{justify-content:center;padding:0}
-  .add,.items{display:none}
+  .add,.items,.left{display:none}
   .dots{display:flex}
   .pill.lg{font-size:15px;padding:11px 12px 11px 11px}
   .pill.lg .cb{width:19px;height:19px}
