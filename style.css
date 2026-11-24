@@ -119,6 +119,8 @@ main{display:flex;flex-direction:column;min-width:0;overflow:auto}
 .pill.ghost>*{visibility:hidden}
 .pill.lifted{background:var(--pill-hover);border-color:var(--accent-soft);box-shadow:0 12px 30px rgba(0,0,0,.6);transform:rotate(-2deg)}
 .pill.floating{position:fixed;z-index:1000;pointer-events:none;margin:0}
+.ins-line{position:fixed;z-index:999;height:2px;border-radius:2px;background:var(--accent);pointer-events:none;box-shadow:0 0 0 2px rgba(170,178,190,.18)}
+.ins-line[hidden]{display:none}
 body.dragging,body.dragging *{cursor:grabbing!important}
 
 .pill.lg{width:auto;font-size:13.5px;padding:9px 12px 9px 10px;gap:10px;align-items:flex-start;border-radius:20px}

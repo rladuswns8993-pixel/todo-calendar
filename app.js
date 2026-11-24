@@ -540,6 +540,40 @@ function moveDrag(){
     if (t) t.classList.add('drop');
     drag.target = t;
   }
+  placeInsertLine(t && t.id === 'daySec');
+}
+
+/* 사이드바 할 일 목록 안에서 놓을 자리 계산 + 가로선 표시 */
+function placeInsertLine(on){
+  const list = $('dayList');
+  const pills = on ? [...list.querySelectorAll('.pill[data-id]')].filter(p => p.dataset.id !== drag.id) : [];
+  if (!on || !pills.length){
+    drag.before = undefined;
+    if (drag.line) drag.line.hidden = true;
+    return;
+  }
+  let i = pills.findIndex(p => { const r = p.getBoundingClientRect(); return drag.y < r.top + r.height / 2; });
+  if (i < 0) i = pills.length;
+  drag.before = i < pills.length ? pills[i].dataset.id : null;        // null = 맨 끝
+  const lr = list.getBoundingClientRect();
+  const y = i < pills.length ? pills[i].getBoundingClientRect().top - 3 : pills[pills.length - 1].getBoundingClientRect().bottom + 3;
+  if (!drag.line){ drag.line = document.createElement('div'); drag.line.className = 'ins-line'; document.body.appendChild(drag.line); }
+  Object.assign(drag.line.style, { left: lr.left + 'px', width: lr.width + 'px', top: (y - 1) + 'px' });
+  drag.line.hidden = false;
+}
+
+/* 놓은 자리에 맞는 순서값: 같은 묶음(미완료/완료) 안에서 앞뒤 항목 사이 */
+function orderAt(task, date, beforeId){
+  const shown = byDate(date).filter(x => x.id !== task.id);
+  const idx = beforeId == null ? shown.length : shown.findIndex(x => x.id === beforeId);
+  const at = idx < 0 ? shown.length : idx;
+  const group = shown.filter(x => x.done === task.done);
+  const k = shown.slice(0, at).filter(x => x.done === task.done).length;
+  const prev = group[k - 1], next = group[k];
+  if (prev && next) return (prev.order + next.order) / 2;
+  if (prev) return prev.order + 1;
+  if (next) return next.order - 1;
+  return Date.now();
 }
 function autoScroll(){
   if (!drag || !drag.on) return;
@@ -557,9 +591,17 @@ function endDrag(commit){
   d.clone.remove(); d.el.classList.remove('ghost');
   document.body.classList.remove('dragging');
   if (d.target) d.target.classList.remove('drop');
+  if (d.line) d.line.remove();
   const task = find(d.id);
-  if (commit && d.target && task && task.date !== d.target.dataset.date){
-    backend.update(task.id, { date: d.target.dataset.date, order: Date.now() });
+  if (commit && d.target && task){
+    const date = d.target.dataset.date;
+    if (d.before !== undefined){
+      // 사이드바 목록 위에 놓음: 그 자리로 (다른 날짜에서 왔으면 날짜도 바꿈)
+      const order = orderAt(task, date, d.before);
+      if (task.date !== date || order !== task.order) backend.update(task.id, task.date !== date ? { date, order } : { order });
+    } else if (task.date !== date){
+      backend.update(task.id, { date, order: Date.now() });
+    }
   }
   render();
 }
